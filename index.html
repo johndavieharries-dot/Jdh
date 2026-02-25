@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кроссворд: Казахская национальная кухня</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Казахский орнамент на фоне */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(0, 175, 202, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(253, 195, 19, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(0, 175, 202, 0.03) 0%, transparent 50%);
+            background-size: 100px 100px, 150px 150px, 80px 80px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .ornament-border {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #00AFCA 0%, #FDC313 50%, #00AFCA 100%);
+            background-size: 200% 100%;
+            animation: shimmer 3s infinite;
+            z-index: 100;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #00AFCA;
+            font-size: clamp(1.8rem, 5vw, 3rem);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+            position: relative;
+            display: inline-block;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, #FDC313, transparent);
+            border-radius: 2px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+            margin-top: 20px;
+        }
+
+        .game-wrapper {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        @media (min-width: 900px) {
+            .game-wrapper {
+                grid-template-columns: auto 1fr;
+            }
+        }
+
+        .crossword-section {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .crossword-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #00AFCA, #FDC313);
+        }
+
+        .crossword-grid {
+            display: grid;
+            grid-template-columns: repeat(14, 1fr);
+            grid-template-rows: repeat(15, 1fr);
+            gap: 2px;
+            max-width: 500px;
+            margin: 0 auto;
+            aspect-ratio: 14/15;
+        }
+
+        .cell {
+            position: relative;
+            background: #f0f0f0;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: clamp(0.7rem, 2.5vw, 1.2rem);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .cell.active {
+            background: white;
+            border-color: #00AFCA;
+            cursor: pointer;
+        }
+
+        .cell.active:hover {
+            background: #e6f7f9;
+            transform: scale(1.05);
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(0, 175, 202, 0.3);
+        }
+
+        .cell.active.highlighted {
+            background: #fff3cd;
+            border-color: #FDC313;
+            box-shadow: 0 0 10px rgba(253, 195, 19, 0.4);
+        }
+
+        .cell.active.selected {
+            background: #00AFCA;
+            color: white;
+            border-color: #008fa3;
+            transform: scale(1.1);
+            z-index: 20;
+            box-shadow: 0 6px 20px rgba(0, 175, 202, 0.4);
+        }
+
+        .cell.active.correct {
+            background: #28a745;
+            color: white;
+            border-color: #1e7e34;
+            animation: pulseCorrect 0.5s ease;
+        }
+
+        .cell.active.incorrect {
+            background: #dc3545;
+            color: white;
+            border-color: #bd2130;
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes pulseCorrect {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .cell.inactive {
+            background: transparent;
+            pointer-events: none;
+        }
+
+        .cell-number {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            font-size: clamp(0.4rem, 1.5vw, 0.7rem);
+            color: #666;
+            font-weight: normal;
+            line-height: 1;
+        }
+
+        .cell input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: transparent;
+            text-align: center;
+            font-size: inherit;
+            font-weight: bold;
+            color: inherit;
+            text-transform: uppercase;
+            outline: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .questions-section {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .questions-section h2 {
+            color: #00AFCA;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .questions-section h2::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 24px;
+            background: #FDC313;
+            border-radius: 2px;
+        }
+
+        .question-list {
+            list-style: none;
+            margin-bottom: 25px;
+        }
+
+        .question-item {
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #00AFCA;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .question-item:hover {
+            background: #e6f7f9;
+            transform: translateX(5px);
+            border-left-color: #FDC313;
+        }
+
+        .question-item.highlighted {
+            background: #fff3cd;
+            border-left-color: #FDC313;
+            box-shadow: 0 2px 8px rgba(253, 195, 19, 0.2);
+        }
+
+        .question-number {
+            display: inline-block;
+            background: #00AFCA;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .direction-label {
+            display: inline-block;
+            background: #FDC313;
+            color: #333;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-right: 8px;
+            text-transform: uppercase;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 140px;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00AFCA 0%, #008fa3 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 175, 202, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 175, 202, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #FDC313 0%, #e5b008 100%);
+            color: #333;
+            box-shadow: 0 4px 15px rgba(253, 195, 19, 0.3);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(253, 195, 19, 0.4);
+        }
+
+        .result-message {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            font-weight: bold;
+            display: none;
+        }
+
+        .result-message.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+
+        .result-message.partial {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeaa7;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid;
+        }
+
+        .legend-box.correct {
+            background: #28a745;
+            border-color: #1e7e34;
+        }
+
+        .legend-box.incorrect {
+            background: #dc3545;
+            border-color: #bd2130;
+        }
+
+        .legend-box.active {
+            background: white;
+            border-color: #00AFCA;
+        }
+
+        @media (max-width: 600px) {
+            .crossword-grid {
+                max-width: 100%;
+            }
+            
+            .cell {
+                font-size: 0.9rem;
+            }
+            
+            .cell-number {
+                font-size: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ornament-border"></div>
+    
+    <div class="container">
+        <header>
+            <h1>Казахская национальная кухня</h1>
+            <p class="subtitle">Интерактивный кроссворд</p>
+        </header>
+
+        <div class="game-wrapper">
+            <div class="crossword-section">
+                <div class="crossword-grid" id="crossword"></div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-box active"></div>
+                        <span>Активная ячейка</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box correct"></div>
+                        <span>Правильно</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box incorrect"></div>
+                        <span>Нужно исправить</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="questions-section">
+                <h2>Вопросы</h2>
+                
+                <h3 style="color: #666; margin-bottom: 15px; font-size: 1.1rem;">По горизонтали</h3>
+                <ul class="question-list" id="horizontal-questions">
+                    <li class="question-item" data-word="КУЫРДАК" data-direction="horizontal" data-start="5,1">
+                        <span class="question-number">1</span>
+                        <span class="direction-label">Горизонталь</span>
+                        <strong>КУЫРДАК</strong> — Традиционное жаркое из субпродуктов или мяса с луком (и иногда картофелем).
+                    </li>
+                    <li class="question-item" data-word="КАЗЫ" data-direction="horizontal" data-start="7,10">
+                        <span class="question-number">2</span>
+                        <span class="direction-label">Горизонталь</span>
+                        <strong>КАЗЫ</strong> — Колбаса из конины, деликатес, который считается символом гостеприимства.
+                    </li>
+                    <li class="question-item" data-word="ШУБАТ" data-direction="horizontal" data-start="3,8">
+                        <span class="question-number">3</span>
+                        <span class="direction-label">Горизонталь</span>
+                        <strong>ШУБАТ</strong> — Целебный напиток из верблюжьего молока.
+                    </li>
+                    <li class="question-item" data-word="БАУРСАК" data-direction="horizontal" data-start="4,8">
+                        <span class="question-number">4</span>
+                        <span class="direction-label">Горизонталь</span>
+                        <strong>БАУРСАК</strong> — Жареные в масле кусочки теста, обязательное угощение на любом празднике.
+                    </li>
+                </ul>
+
+                <h3 style="color: #666; margin-bottom: 15px; font-size: 1.1rem;">По вертикали</h3>
+                <ul class="question-list" id="vertical-questions">
+                    <li class="question-item" data-word="БЕШБАРМАК" data-direction="vertical" data-start="1,8">
+                        <span class="question-number">1</span>
+                        <span class="direction-label">Вертикаль</span>
+                        <strong>БЕШБАРМАК</strong> — Главное национальное блюдо из мяса и сочней (теста), название которого означает «пять пальцев».
+                    </li>
+                    <li class="question-item" data-word="КУМЫС" data-direction="vertical" data-start="5,1">
+                        <span class="question-number">2</span>
+                        <span class="direction-label">Вертикаль</span>
+                        <strong>КУМЫС</strong> — Освежающий кисломолочный напиток из кобыльего молока.
+                    </li>
+                    <li class="question-item" data-word="НАУРЫЗКОЖЕ" data-direction="vertical" data-start="6,11">
+                        <span class="question-number">3</span>
+                        <span class="direction-label">Вертикаль</span>
+                        <strong>НАУРЫЗКОЖЕ</strong> — Ритуальный суп из семи ингредиентов, который готовят на весенний праздник обновления.
+                    </li>
+                </ul>
+
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="checkAnswers()">Проверить</button>
+                    <button class="btn btn-secondary" onclick="clearGrid()">Очистить</button>
+                </div>
+
+                <div id="result" class="result-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Конфигурация кроссворда
+        const gridSize = { rows: 15, cols: 14 };
+        
+        // Определение слов и их позиций
+        const words = [
+            // Горизонтальные
+            { word: 'КУЫРДАК', direction: 'horizontal', row: 4, col: 0, number: 1 }, // row 5-1=4, col 1-1=0
+            { word: 'КАЗЫ', direction: 'horizontal', row: 6, col: 9, number: 2 },   // row 7-1=6, col 10-1=9
+            { word: 'ШУБАТ', direction: 'horizontal', row: 2, col: 7, number: 3 },   // row 3-1=2, col 8-1=7
+            { word: 'БАУРСАК', direction: 'horizontal', row: 3, col: 7, number: 4 }, // row 4-1=3, col 8-1=7
+            
+            // Вертикальные
+            { word: 'БЕШБАРМАК', direction: 'vertical', row: 0, col: 7, number: 1 }, // row 1-1=0, col 8-1=7
+            { word: 'КУМЫС', direction: 'vertical', row: 4, col: 0, number: 2 },     // row 5-1=4, col 1-1=0
+            { word: 'НАУРЫЗКОЖЕ', direction: 'vertical', row: 5, col: 10, number: 3 } // row 6-1=5, col 11-1=10
+        ];
+
+        // Создание сетки
+        function createGrid() {
+            const grid = document.getElementById('crossword');
+            grid.innerHTML = '';
+            
+            // Создаем матрицу для отслеживания занятых ячеек
+            const matrix = Array(gridSize.rows).fill(null).map(() => Array(gridSize.cols).fill(null));
+            
+            // Заполняем матрицу словами
+            words.forEach(w => {
+                for (let i = 0; i < w.word.length; i++) {
+                    const r = w.direction === 'horizontal' ? w.row : w.row + i;
+                    const c = w.direction === 'horizontal' ? w.col + i : w.col;
+                    if (r < gridSize.rows && c < gridSize.cols) {
+                        matrix[r][c] = { 
+                            letter: w.word[i], 
+                            word: w.word,
+                            direction: w.direction,
+                            number: i === 0 ? w.number : null,
+                            isStart: i === 0
+                        };
+                    }
+                }
+            });
+            
+            // Создаем ячейки
+            for (let r = 0; r < gridSize.rows; r++) {
+                for (let c = 0; c < gridSize.cols; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    
+                    if (matrix[r][c]) {
+                        cell.classList.add('active');
+                        cell.dataset.letter = matrix[r][c].letter;
+                        cell.dataset.word = matrix[r][c].word;
+                        cell.dataset.direction = matrix[r][c].direction;
+                        
+                        // Добавляем номер если это начало слова
+                        if (matrix[r][c].number) {
+                            const num = document.createElement('span');
+                            num.className = 'cell-number';
+                            num.textContent = matrix[r][c].number;
+                            cell.appendChild(num);
+                        }
+                        
+                        // Создаем input
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.maxLength = 1;
+                        input.dataset.row = r;
+                        input.dataset.col = c;
+                        
+                        // Обработчики событий
+                        input.addEventListener('focus', () => highlightWord(r, c, matrix[r][c].direction));
+                    
